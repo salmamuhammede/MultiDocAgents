@@ -1,3 +1,16 @@
 loguru
 ruff
 langgraph
+openai
+langchain
+langchain-openai
+langchain-community
+langchain-core
+wikipedia
+langchain_huggingface
+langchain_chroma
+sentence-transformers
+lazy_loader
+librosa
+pypdf
+rank-bm25

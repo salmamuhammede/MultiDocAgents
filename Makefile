@@ -67,7 +67,7 @@ ingestion:
 
 
 # Run individual tools components	
-memory:
+tools:
 	python -m src.tools.data_analysis
 	python -m src.tools.table_extractor
 	python -m src.tools.calculator
@@ -77,6 +77,8 @@ memory:
 main:
 	python -m src.main
 
+tests:
+	python -m tests.retrieval.test_retrieval_quality
 
 
 
