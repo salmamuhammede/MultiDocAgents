@@ -2,11 +2,14 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from loguru import logger
 
-from src.config.prompts.retriever import RETRIEVER_QUERY_REWRITE_PROMPT
+from src.config.prompts.retriever import (
+    RETRIEVER_QUERY_REWRITE_PROMPT,
+)
 from src.config.settings import (
     BASE_URL,
     LLM_API_KEY,
     LLM_MODEL_NAME,
+    REWRITER_TIMEOUT,
     TEMPERATURE,
 )
 
@@ -32,6 +35,7 @@ class QueryRewriter:
             api_key=LLM_API_KEY,
             base_url=BASE_URL,
             temperature=TEMPERATURE,
+            timeout=REWRITER_TIMEOUT,
         )
 
         self.prompt = ChatPromptTemplate.from_template(RETRIEVER_QUERY_REWRITE_PROMPT)

@@ -1,20 +1,33 @@
-#Third Party
-from typing import List, Dict, Any, Annotated
-from pathlib import Path
+# Third Party
+
 import json
+from pathlib import Path
+from typing import Annotated, Any
+
 import pdfplumber
 from langchain_core.documents import Document
 from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
 from loguru import logger
 
+# ============================================================
+# Configuration
+# ============================================================
+
+NEARBY_PAGE_RANGE = 2
+
+
+# ============================================================
+# Page Utilities
+# ============================================================
 
 def _normalize_page_number(page: Any) -> int:
     """
-    Convert page metadata into a 1-based PDF page number.
+    Convert 0-based page metadata into a 1-based PDF page number.
 
-    Most PDF libraries use 0-based indexes internally, while
-    pdfplumber uses 1-based page access.
+    Example:
+        Retriever page 0 -> PDF page 1
+        Retriever page 8 -> PDF page 9
     """
 
     try:
@@ -22,36 +35,79 @@ def _normalize_page_number(page: Any) -> int:
     except (TypeError, ValueError):
         raise ValueError(f"Invalid page number: {page}")
 
-     # If Result 4 says Page 0, it actually maps to the 1st page of the PDF.
     if page >= 0:
         return page + 1
+
     return page
 
 
-def _find_tables_on_page(pdf_path: str, page_number: int) -> List[List[List[str]]]:
+def _get_nearby_pages(
+    page_number: int,
+    total_pages: int,
+    page_range: int = NEARBY_PAGE_RANGE,
+) -> list[int]:
     """
-    Extract all tables from a specific PDF page.
+    Return the target page and nearby pages.
+
+    Example:
+        page_number = 8
+        page_range = 2
+
+        Returns:
+        [6, 7, 8, 9, 10]
+
+    Page numbers are 1-based.
     """
+
+    start_page = max(1, page_number - page_range)
+    end_page = min(total_pages, page_number + page_range)
+
+    return list(range(start_page, end_page + 1))
+
+
+# ============================================================
+# Table Extraction
+# ============================================================
+
+def _find_tables_on_page(
+    pdf: pdfplumber.PDF,
+    page_number: int,
+) -> list[list[list[str]]]:
+    """
+    Extract all tables from a specific page.
+
+    pdfplumber pages are accessed using 0-based indexes,
+    while page_number is 1-based.
+    """
+
+    if page_number < 1 or page_number > len(pdf.pages):
+        return []
+
+    logger.info(
+        f"Opening page for table extraction: "
+        f"Page {page_number}"
+    )
+
+    page = pdf.pages[page_number - 1]
+
+    extracted_tables = page.extract_tables()
 
     tables = []
-    logger.info(f"Opening file to find tables: {Path(pdf_path).resolve()} (Page: {page_number})")
-    with pdfplumber.open(pdf_path) as pdf:
 
-        if page_number < 1 or page_number > len(pdf.pages):
-            return []
-
-        page = pdf.pages[page_number - 1]
-
-        extracted_tables = page.extract_tables()
-
-        for table in extracted_tables:
-            if table:
-                tables.append(table)
+    for table in extracted_tables:
+        if table:
+            tables.append(table)
 
     return tables
 
 
-def _clean_table(table: List[List[Any]]) -> List[List[str]]:
+# ============================================================
+# Table Cleaning
+# ============================================================
+
+def _clean_table(
+    table: list[list[Any]],
+) -> list[list[str]]:
     """
     Clean cells and remove completely empty rows.
     """
@@ -68,32 +124,37 @@ def _clean_table(table: List[List[Any]]) -> List[List[str]]:
             for cell in row
         ]
 
-        # Ignore completely empty rows
         if any(cell != "" for cell in cleaned_row):
             cleaned.append(cleaned_row)
 
     return cleaned
 
 
-def _table_to_records(table: List[List[str]]) -> Dict[str, Any]:
+# ============================================================
+# Convert Table to Records
+# ============================================================
+
+def _table_to_records(
+    table: list[list[str]],
+) -> dict[str, Any]:
     """
     Convert a raw table into a structured representation.
 
-    Assumes the first row is the header.
+    Assumes the first row contains the headers.
     """
 
     if not table:
         return {
             "columns": [],
-            "rows": []
+            "rows": [],
         }
 
     headers = table[0]
 
-    # Handle duplicate/empty column names
     normalized_headers = []
 
     for i, header in enumerate(headers):
+
         header = header.strip()
 
         if not header:
@@ -105,11 +166,16 @@ def _table_to_records(table: List[List[str]]) -> Dict[str, Any]:
 
     for row in table[1:]:
 
-        # Make row length match number of columns
         if len(row) < len(normalized_headers):
-            row = row + [""] * (len(normalized_headers) - len(row))
+
+            row = row + [
+                ""
+            ] * (
+                len(normalized_headers) - len(row)
+            )
 
         elif len(row) > len(normalized_headers):
+
             row = row[:len(normalized_headers)]
 
         record = {
@@ -121,32 +187,54 @@ def _table_to_records(table: List[List[str]]) -> Dict[str, Any]:
 
     return {
         "columns": normalized_headers,
-        "rows": rows
+        "rows": rows,
     }
 
+
+# ============================================================
+# Table Extractor Tool
+# ============================================================
 
 @tool
 def extract_tables(
     question: str,
-    documents: Annotated[List[Document], InjectedState("documents")]
+    documents: Annotated[
+        list[Document],
+        InjectedState("documents"),
+    ],
 ) -> str:
     """
-    Extract structured tables from the document pages relevant to the
-    current question.
+    Extract structured tables from pages relevant to the
+    current question and from nearby pages.
 
-    The documents come from the retriever through LangGraph state.
+    For every page retrieved by the retriever, this tool also
+    checks nearby pages within NEARBY_PAGE_RANGE.
 
-    The tool uses the source file and page metadata to locate the original
-    PDF and extract tables from the relevant pages.
+    Example:
+        If the retriever returns page 8 and the nearby page
+        range is 2, pages 6-10 will be inspected.
 
-    Returns structured tables containing source, page, columns and rows.
+    The tool returns structured tables containing:
+        - source
+        - page
+        - table ID
+        - columns
+        - rows
     """
+
     logger.info("Called table extractor tool")
+
     extracted_tables = []
 
-    # Avoid extracting the same PDF page multiple times because
-    # several retrieved chunks can come from the same page.
+    # Prevent the same source/page from being processed
+    # multiple times.
     processed_pages = set()
+
+    # --------------------------------------------------------
+    # First determine all nearby pages
+    # --------------------------------------------------------
+
+    pages_to_process = []
 
     for document in documents:
 
@@ -160,38 +248,111 @@ def extract_tables(
 
         source = str(source)
 
-        # Normalize path
         pdf_path = Path(source)
 
         if not pdf_path.exists():
+            logger.warning(
+                f"PDF does not exist: {pdf_path}"
+            )
             continue
 
         try:
-            page_number = _normalize_page_number(page)
+            retrieved_page = _normalize_page_number(page)
 
         except ValueError:
+            logger.warning(
+                f"Invalid page metadata: {page}"
+            )
             continue
 
-        page_key = (str(pdf_path.resolve()), page_number)
+        # ----------------------------------------------------
+        # Open PDF once to determine total number of pages
+        # ----------------------------------------------------
+
+        try:
+
+            with pdfplumber.open(pdf_path) as pdf:
+
+                total_pages = len(pdf.pages)
+
+                nearby_pages = _get_nearby_pages(
+                    retrieved_page,
+                    total_pages,
+                    NEARBY_PAGE_RANGE,
+                )
+
+        except Exception as e:
+
+            logger.error(
+                f"Failed to inspect PDF {source}: {e}"
+            )
+
+            continue
+
+        # ----------------------------------------------------
+        # Add nearby pages
+        # ----------------------------------------------------
+
+        for page_number in nearby_pages:
+
+            pages_to_process.append(
+                (
+                    str(pdf_path),
+                    page_number,
+                    retrieved_page,
+                )
+            )
+
+    # --------------------------------------------------------
+    # Extract tables
+    # --------------------------------------------------------
+
+    for source, page_number, retrieved_page in pages_to_process:
+
+        page_key = (
+            str(Path(source).resolve()),
+            page_number,
+        )
 
         if page_key in processed_pages:
             continue
 
         processed_pages.add(page_key)
 
+        logger.info(
+            f"Checking page {page_number} "
+            f"(retrieved page: {retrieved_page})"
+        )
+
         try:
-            raw_tables = _find_tables_on_page(
-                str(pdf_path),
-                page_number
-            )
+
+            with pdfplumber.open(source) as pdf:
+
+                raw_tables = _find_tables_on_page(
+                    pdf,
+                    page_number,
+                )
 
         except Exception as e:
-            extracted_tables.append({
-                "source": source,
-                "page": page_number,
-                "error": f"Failed to extract tables: {str(e)}"
-            })
+
+            logger.error(
+                f"Failed to extract tables from "
+                f"{source} page {page_number}: {e}"
+            )
+
+            extracted_tables.append(
+                {
+                    "source": source,
+                    "page": page_number,
+                    "error": f"Failed to extract tables: {e!s}",
+                }
+            )
+
             continue
+
+        # ----------------------------------------------------
+        # Process extracted tables
+        # ----------------------------------------------------
 
         for table_index, raw_table in enumerate(raw_tables):
 
@@ -200,33 +361,61 @@ def extract_tables(
             if not cleaned_table:
                 continue
 
-            structured_table = _table_to_records(cleaned_table)
-            logger.info("Extracting tables")
-            extracted_tables.append({
-                "table_id": f"table_{len(extracted_tables) + 1}",
-                "source": source,
-                "page": page_number,
-                "table_index": table_index,
-                "columns": structured_table["columns"],
-                "rows": structured_table["rows"]
-            })
+            structured_table = _table_to_records(
+                cleaned_table
+            )
+
+            logger.info(
+                f"Extracted table from "
+                f"{Path(source).name} "
+                f"page {page_number}"
+            )
+
+            extracted_tables.append(
+                {
+                    "table_id": (
+                        f"table_{len(extracted_tables) + 1}"
+                    ),
+                    "source": source,
+                    "page": page_number,
+                    "retrieved_from_page": retrieved_page,
+                    "table_index": table_index,
+                    "columns": structured_table["columns"],
+                    "rows": structured_table["rows"],
+                }
+            )
+
+    # --------------------------------------------------------
+    # No tables
+    # --------------------------------------------------------
 
     if not extracted_tables:
+
         logger.info("Found no tables")
+
         return json.dumps(
             {
                 "question": question,
                 "tables_found": 0,
-                "tables": []
+                "tables": [],
             },
-            indent=2
+            indent=2,
         )
+
+    # --------------------------------------------------------
+    # Return tables
+    # --------------------------------------------------------
+
+    logger.info(
+        f"Found {len(extracted_tables)} tables"
+    )
 
     return json.dumps(
         {
             "question": question,
             "tables_found": len(extracted_tables),
-            "tables": extracted_tables
+            "nearby_page_range": NEARBY_PAGE_RANGE,
+            "tables": extracted_tables,
         },
-        indent=2
+        indent=2,
     )

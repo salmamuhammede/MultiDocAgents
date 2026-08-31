@@ -69,3 +69,10 @@ TEMPERATURE = 0.2
 
 UPLOAD_DIR = "data/uploads"
 PDF_DOC_TEST = "data/uploads/attention.pdf"
+
+# ==============================
+#Timeouts and maxlimits
+# ==============================
+MAX_TOOL_CALLS = 5
+REWRITER_TIMEOUT = 60
+ANALYST_TIMEOUT = 60

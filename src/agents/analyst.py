@@ -1,10 +1,10 @@
 # Third Party
 from langchain_openai import ChatOpenAI
-
 from loguru import logger
 
 from src.config.settings import (
     ANALYST_API_KEY,
+    ANALYST_TIMEOUT,
     BASE_URL,
     LLM_MODEL_NAME,
     TEMPERATURE,
@@ -14,6 +14,7 @@ from src.config.settings import (
 from src.tools.calculator import Calculator
 from src.tools.document_comparator import DocumentComparisonTool
 from src.tools.table_extractor import extract_tables
+
 
 class AnalystAgent:
     """
@@ -27,6 +28,7 @@ class AnalystAgent:
             base_url=BASE_URL,
             model=LLM_MODEL_NAME,
             temperature=TEMPERATURE,
+             timeout=ANALYST_TIMEOUT,
         )
         logger.success("Analyst model loaded.")
         calc = Calculator

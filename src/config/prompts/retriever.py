@@ -32,3 +32,4 @@ Original question:
 
 Rewritten retrieval query:
 """
+REWRITER_TIMEOUT = 60

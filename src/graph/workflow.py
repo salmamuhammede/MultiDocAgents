@@ -1,12 +1,17 @@
+#Third party
+from langchain_core.messages import HumanMessage
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 from loguru import logger
 
-from src.graph.nodes import analyze_node, retrieve
-from src.graph.state import AnalystState
-from langchain_core.messages import HumanMessage
 #Local
 from src.agents.analyst import AnalystAgent
+from src.config.settings import (
+    MAX_TOOL_CALLS,
+)
+from src.graph.nodes import analyze_node, retrieve
+from src.graph.state import AnalystState
 
 # ============================================================
 # Create tools
@@ -14,6 +19,9 @@ from src.agents.analyst import AnalystAgent
 
 #initialize analyzer once
 analyst = AnalystAgent.load_llm_with_tools()
+
+#instantiate memory
+memory = MemorySaver()
 
 tools = AnalystAgent.get_tools()
 
@@ -26,11 +34,14 @@ analyze = analyze_node(analyst)
 # Decide whether Analyst wants to use a tool
 # ============================================================
 
-def should_continue(state: AnalystState):
+def should_continue(state):
+
+    if state.get("tool_calls_count", 0) >= MAX_TOOL_CALLS :
+        return END
 
     last_message = state["messages"][-1]
 
-    if last_message.tool_calls:
+    if getattr(last_message, "tool_calls", None):
         return "tools"
 
     return END
@@ -83,10 +94,12 @@ builder.add_edge(
 # ============================================================
 # Compile
 # ============================================================
-
-graph = builder.compile()
+graph = builder.compile(checkpointer=memory)
 
 logger.info("Graph built")
+
+config = {"configurable": {"thread_id": "session_user_99"}}
+
 
 while True:
 
@@ -115,7 +128,8 @@ while True:
                     content=query
                 )
             ],
-        }
+        },
+        config = config
     )
 
     # ========================================================
