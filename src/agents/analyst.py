@@ -14,6 +14,7 @@ from src.config.settings import (
 from src.tools.calculator import Calculator
 from src.tools.document_comparator import DocumentComparisonTool
 from src.tools.table_extractor import extract_tables
+from src.tools.data_analysis import data_analysis
 
 
 class AnalystAgent:
@@ -40,6 +41,7 @@ class AnalystAgent:
             calc.statistics,
             comparator.compare_documents,
             extract_tables,
+            data_analysis,
         ]
         llm_with_tools = llm.bind_tools(tools)
         logger.success("Bound tools to AnalystAgent")
@@ -59,6 +61,7 @@ class AnalystAgent:
             calc.statistics,
             comparator.compare_documents,
             extract_tables,
+            data_analysis,
         ]
 
         return tools

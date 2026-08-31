@@ -72,6 +72,15 @@ def analyze_node(analyzer):
             *state["messages"],
         ]
 
+        for i, message in enumerate(messages):
+            content = str(message.content)
+
+            print(
+                f"Message {i}: "
+                f"{type(message).__name__} | "
+                f"{len(content):,} characters"
+            )
+
         response = analyzer.invoke(messages)
 
         print("\n" + "=" * 80)

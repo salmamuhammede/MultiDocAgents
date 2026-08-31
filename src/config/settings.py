@@ -68,7 +68,7 @@ TEMPERATURE = 0.2
 # ==============================
 
 UPLOAD_DIR = "data/uploads"
-PDF_DOC_TEST = "data/uploads/attention.pdf"
+PDF_DOC_TEST = "data/uploads/gdp.pdf"
 
 # ==============================
 #Timeouts and maxlimits
