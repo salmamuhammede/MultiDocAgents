@@ -55,7 +55,10 @@ RERANKER_DEVICE = "cpu"
 BASE_URL = "https://openrouter.ai/api/v1"
 
 LLM_MODEL_NAME = "openrouter/free"
+
 LLM_API_KEY = os.getenv("OPENROUTER_API_KEY")
+ANALYST_API_KEY = os.getenv("ANALYST_API_KEY")
+COMPARATOR_API_KEY = os.getenv("COMPARATOR_API_KEY")
 
 TEMPERATURE = 0.2
 
@@ -65,4 +68,4 @@ TEMPERATURE = 0.2
 # ==============================
 
 UPLOAD_DIR = "data/uploads"
-PDF_DOC_TEST = "D:/Python/multi_doc_agents/data/docs/StreamlitPython.pdf"
+PDF_DOC_TEST = "data/uploads/attention.pdf"

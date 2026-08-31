@@ -143,14 +143,11 @@ class Chunker:
         chunks: list[Document] = []
 
         for document in documents:
-           
             sections = self.markdown_header_splitter.split_text(document.page_content)
 
             for section in sections:
-                
                 section.metadata.update(document.metadata)
 
-                
                 section_chunks = self.markdown_text_splitter.split_documents([section])
 
                 chunks.extend(section_chunks)

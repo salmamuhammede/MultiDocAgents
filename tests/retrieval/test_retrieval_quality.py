@@ -1,8 +1,8 @@
 from src.ingestion.embedder import EmbeddingModel
-from src.retrieval.vector_store import VectorDB
-from src.retrieval.semantic_search import SemanticSearch
-from src.retrieval.keyword_search import KeywordSearch
 from src.retrieval.hybrid_search import HybridSearch
+from src.retrieval.keyword_search import KeywordSearch
+from src.retrieval.semantic_search import SemanticSearch
+from src.retrieval.vector_store import VectorDB
 
 
 def main():

@@ -93,13 +93,9 @@ class HybridSearch:
             raise ValueError("keyword_weight cannot be negative.")
 
         if semantic_weight == 0 and keyword_weight == 0:
-            raise ValueError(
-                "At least one search weight must be greater than 0."
-            )
+            raise ValueError("At least one search weight must be greater than 0.")
 
-        logger.info(
-            f"Starting hybrid search: query='{query}'"
-        )
+        logger.info(f"Starting hybrid search: query='{query}'")
 
         logger.debug(
             f"Search configuration: "
@@ -119,10 +115,7 @@ class HybridSearch:
             k=semantic_k,
         )
 
-        logger.debug(
-            f"Semantic search returned "
-            f"{len(semantic_results)} candidates."
-        )
+        logger.debug(f"Semantic search returned {len(semantic_results)} candidates.")
 
         # --------------------------------------------------
         # 2. Keyword Search
@@ -133,10 +126,7 @@ class HybridSearch:
             k=keyword_k,
         )
 
-        logger.debug(
-            f"Keyword search returned "
-            f"{len(keyword_results)} candidates."
-        )
+        logger.debug(f"Keyword search returned {len(keyword_results)} candidates.")
 
         # --------------------------------------------------
         # 3. Weighted Reciprocal Rank Fusion
@@ -155,9 +145,7 @@ class HybridSearch:
         ):
             document_id = self._get_document_id(document)
 
-            semantic_score = semantic_weight / (
-                rrf_k + rank
-            )
+            semantic_score = semantic_weight / (rrf_k + rank)
 
             scores[document_id] += semantic_score
             documents[document_id] = document
@@ -172,9 +160,7 @@ class HybridSearch:
         ):
             document_id = self._get_document_id(document)
 
-            keyword_score = keyword_weight / (
-                rrf_k + rank
-            )
+            keyword_score = keyword_weight / (rrf_k + rank)
 
             scores[document_id] += keyword_score
             documents[document_id] = document
@@ -201,9 +187,7 @@ class HybridSearch:
             for document_id, score in ranked_results[:k]
         ]
 
-        logger.success(
-            f"Hybrid search returned {len(results)} results."
-        )
+        logger.success(f"Hybrid search returned {len(results)} results.")
 
         return results
 

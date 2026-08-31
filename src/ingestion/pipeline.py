@@ -116,7 +116,7 @@ class IngestionPipeline:
             ".json",
             ".csv",
             ".docx",
-            ".pptx",      
+            ".pptx",
         }
 
         files = [
@@ -153,7 +153,6 @@ def main() -> None:
 
     logger.info("Testing Ingestion Pipeline")
 
-    
     source = PDF_DOC_TEST
 
     pipeline = IngestionPipeline()
