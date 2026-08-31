@@ -1,5 +1,6 @@
 # Third Party
 from langchain_openai import ChatOpenAI
+
 from loguru import logger
 
 from src.config.settings import (
@@ -12,7 +13,7 @@ from src.config.settings import (
 # Local
 from src.tools.calculator import Calculator
 from src.tools.document_comparator import DocumentComparisonTool
-
+from src.tools.table_extractor import extract_tables
 
 class AnalystAgent:
     """
@@ -36,6 +37,7 @@ class AnalystAgent:
             calc.average,
             calc.statistics,
             comparator.compare_documents,
+            extract_tables,
         ]
         llm_with_tools = llm.bind_tools(tools)
         logger.success("Bound tools to AnalystAgent")
@@ -54,6 +56,7 @@ class AnalystAgent:
             calc.average,
             calc.statistics,
             comparator.compare_documents,
+            extract_tables,
         ]
 
         return tools

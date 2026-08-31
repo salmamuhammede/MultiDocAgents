@@ -88,44 +88,46 @@ graph = builder.compile()
 
 logger.info("Graph built")
 
-# ============================================================
-# Test query
-# ============================================================
+while True:
 
-query = input("\nEnter your question: ").strip()
+    query = input("\nEnter your question (q to quit): ").strip()
 
-if not query:
-    print("Question cannot be empty.")
-    exit()
+    # Exit
+    if query.lower() == "q":
+        print("\nExiting...")
+        break
 
+    # Empty question
+    if not query:
+        print("Question cannot be empty.")
+        continue
 
-# ============================================================
-# Run graph
-# ============================================================
+    # ========================================================
+    # Run graph
+    # ========================================================
 
-result = graph.invoke(
-    {
-        "question": query,
-        "documents": [],
-        "messages": [
-            HumanMessage(
-                content=query
-            )
-        ],
-    }
-)
+    result = graph.invoke(
+        {
+            "question": query,
+            "documents": [],
+            "messages": [
+                HumanMessage(
+                    content=query
+                )
+            ],
+        }
+    )
 
+    # ========================================================
+    # Print final answer
+    # ========================================================
 
-# ============================================================
-# Print final answer
-# ============================================================
+    print("\n" + "=" * 80)
+    print("FINAL ANSWER")
+    print("=" * 80)
 
-print("\n" + "=" * 80)
-print("FINAL ANSWER")
-print("=" * 80)
+    final_message = result["messages"][-1]
 
-final_message = result["messages"][-1]
+    print(final_message.content)
 
-print(final_message.content)
-
-print("=" * 80)
+    print("=" * 80)

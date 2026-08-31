@@ -1,11 +1,14 @@
 # Third Party
 from langchain_core.messages import HumanMessage
+from langchain_core.messages import SystemMessage
+
 
 from src.agents.analyst import AnalystAgent
 from src.agents.retriever import RetrieverAgent
 
 # Local
 from src.graph.state import AnalystState
+from src.config.prompts.analyst import ANALYST_PROMPT
 
 def retrieve(state: AnalystState):
 
@@ -31,33 +34,21 @@ def retrieve(state: AnalystState):
 
         documents.append(document)
 
-    print("\n" + "=" * 80)
-    print("DOCUMENTS SENT TO STATE")
-    print("=" * 80)
-
-    for i, document in enumerate(documents):
-        print(f"\nDocument {i}")
-        print("Type:", type(document))
-        print("Has metadata:", hasattr(document, "metadata"))
-        print("Has page_content:", hasattr(document, "page_content"))
-
-    print("=" * 80)
-
     return {
         "documents": documents
     }
 
-
-from src.graph.state import AnalystState
 
 
 def analyze_node(analyzer):
 
     def analyze(state: AnalystState):
 
-        response = analyzer.invoke(
-            state["messages"]
-        )
+        messages = [
+        SystemMessage(content=ANALYST_PROMPT),
+        *state["messages"],
+    ]
+        response = analyzer.invoke(messages)
 
         return {
             "messages": [response]
