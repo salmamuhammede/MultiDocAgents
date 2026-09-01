@@ -1,5 +1,6 @@
 # Third Party
 from langchain_core.messages import HumanMessage, SystemMessage
+from loguru import logger
 
 from src.agents.retriever import RetrieverAgent
 from src.config.prompts.analyst import ANALYST_PROMPT
@@ -12,8 +13,11 @@ def retrieve(state: AnalystState):
 
     retriever = RetrieverAgent()
 
+    #if analyst tool has a more specific query for more evidence
+    query = state.get("retrieval_query") or state["question"]
+    
     results = retriever.retrieve(
-        query=state["question"],
+        query
     )
 
     #make sure docs have metadata and are formatted correctly
@@ -33,7 +37,8 @@ def retrieve(state: AnalystState):
         documents.append(document)
 
     return {
-        "documents": documents
+        "documents": documents,
+        "retrieval_query": None,
     }
 
 
@@ -108,3 +113,27 @@ def analyze_node(analyzer):
         }
 
     return analyze
+
+
+#node for the evidence tool
+def more_evidence(state: AnalystState):
+
+    last_message = state["messages"][-1]
+
+    tool_calls = getattr(last_message, "tool_calls", [])
+
+    for call in tool_calls:
+
+        if call["name"] == "search_more_evidence":
+
+            query = call["args"]["query"]
+
+            logger.info(
+                f"Requesting more evidence: {query}"
+            )
+
+            return {
+                "retrieval_query": query
+            }
+
+    return {}

@@ -12,9 +12,12 @@ from src.config.settings import (
 
 # Local
 from src.tools.calculator import Calculator
-from src.tools.document_comparator import DocumentComparisonTool
-from src.tools.table_extractor import extract_tables
 from src.tools.data_analysis import data_analysis
+from src.tools.document_comparator import DocumentComparisonTool
+
+#import the search_more_evidence tool 
+from src.tools.search_evidence import search_more_evidence
+from src.tools.table_extractor import extract_tables
 
 
 class AnalystAgent:
@@ -34,6 +37,7 @@ class AnalystAgent:
         logger.success("Analyst model loaded.")
         calc = Calculator
         comparator = DocumentComparisonTool()
+        evidence_tool = search_more_evidence
         tools = [
             calc.basic_operation,
             calc.percentage_change,
@@ -42,6 +46,7 @@ class AnalystAgent:
             comparator.compare_documents,
             extract_tables,
             data_analysis,
+            evidence_tool,
         ]
         llm_with_tools = llm.bind_tools(tools)
         logger.success("Bound tools to AnalystAgent")
@@ -53,7 +58,7 @@ class AnalystAgent:
 
         calc = Calculator()
         comparator = DocumentComparisonTool()
-
+        evidence_tool = search_more_evidence
         tools = [
             calc.basic_operation,
             calc.percentage_change,
@@ -62,6 +67,7 @@ class AnalystAgent:
             comparator.compare_documents,
             extract_tables,
             data_analysis,
+            evidence_tool,
         ]
 
         return tools

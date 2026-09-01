@@ -1,8 +1,9 @@
 # Third Party
 import json
-from typing import Any, Annotated
-from loguru import logger
+from typing import Any
+
 from langchain_core.tools import tool
+from loguru import logger
 
 
 def _to_number(value: Any) -> float:

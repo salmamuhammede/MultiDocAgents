@@ -10,7 +10,7 @@ from src.agents.analyst import AnalystAgent
 from src.config.settings import (
     MAX_TOOL_CALLS,
 )
-from src.graph.nodes import analyze_node, retrieve
+from src.graph.nodes import analyze_node, more_evidence, retrieve
 from src.graph.state import AnalystState
 
 # ============================================================
@@ -36,15 +36,22 @@ analyze = analyze_node(analyst)
 
 def should_continue(state):
 
-    if state.get("tool_calls_count", 0) >= MAX_TOOL_CALLS :
+    if state.get("tool_calls_count", 0) >= MAX_TOOL_CALLS:
         return END
 
     last_message = state["messages"][-1]
 
-    if getattr(last_message, "tool_calls", None):
-        return "tools"
+    tool_calls = getattr(last_message, "tool_calls", [])
 
-    return END
+    if not tool_calls:
+        return END
+
+    for call in tool_calls:
+
+        if call["name"] == "search_more_evidence":
+            return "more_evidence"
+
+    return "tools"
 
 # ============================================================
 # Build graph
@@ -56,6 +63,7 @@ builder = StateGraph(AnalystState)
 builder.add_node("retrieve", retrieve)
 builder.add_node("analyze", analyze)
 builder.add_node("tools", tool_node)
+builder.add_node("more_evidence",more_evidence)
 
 
 # ============================================================
@@ -68,23 +76,30 @@ builder.add_edge(
     "retrieve",
 )
 
-# Retriever → Analyst
+# Retriever to Analyst
 builder.add_edge(
     "retrieve",
     "analyze",
 )
 
-# Analyst → Tool OR END
+# Analyst to Tool OR evidencetool OR END
 builder.add_conditional_edges(
     "analyze",
     should_continue,
     {
         "tools": "tools",
+        "more_evidence": "more_evidence",
         END: END,
     },
 )
 
-# Tool → Analyst
+#evidencetool to retrieve node
+builder.add_edge(
+    "more_evidence",
+    "retrieve"
+)
+
+# Tool to Analyst
 builder.add_edge(
     "tools",
     "analyze",
@@ -120,18 +135,16 @@ while True:
     # ========================================================
 
     result = graph.invoke(
-        {
-            "question": query,
-            "documents": [],
-            "messages": [
-                HumanMessage(
-                    content=query
-                )
-            ],
-        },
-        config = config
-    )
-
+    {
+        "question": query,
+        "documents": [],
+        "messages": [
+            HumanMessage(content=query)
+        ],
+        "tool_calls_count": 0,
+    },
+    config=config
+)
     # ========================================================
     # Print final answer
     # ========================================================
