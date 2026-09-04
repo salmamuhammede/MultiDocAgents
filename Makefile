@@ -73,9 +73,18 @@ tools:
 	python -m src.tools.calculator
 	python -m src.tools.document_comparator
 
-# Run individual main	
-main:
-	python -m src.main
+# Run individual additional features components	
+tools:
+	python -m src.additional_features_task2.ocr.ocr_feature
+	python -m src.additional_features_task2.voice.voice_feature
+
+# Run individual fast_api
+backend:
+	uvicorn src.backend.main:app --reload
+
+# Run individual streamlit
+ui:
+	streamlit run src/ui/app.py	
 
 tests:
 	python -m tests.retrieval.test_retrieval_quality

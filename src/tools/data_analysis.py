@@ -99,14 +99,12 @@ def data_analysis(
 
             for row in data:
                 if not isinstance(row, dict):
-                    raise ValueError(
+                    raise TypeError(
                         "When 'column' is provided, data must contain dictionaries."
                     )
 
                 if column not in row:
-                    raise ValueError(
-                        f"Column '{column}' not found in row: {row}"
-                    )
+                    raise ValueError(f"Column '{column}' not found in row: {row}")
 
                 values.append(_to_number(row[column]))
 
@@ -172,9 +170,7 @@ def data_analysis(
 
         elif operation == "difference":
             if len(values) < 2:
-                raise ValueError(
-                    "Difference requires at least two values."
-                )
+                raise ValueError("Difference requires at least two values.")
 
             result = max(values) - min(values)
 
@@ -193,8 +189,7 @@ def data_analysis(
         elif operation == "percentage":
             if len(values) != 2:
                 raise ValueError(
-                    "Percentage operation requires exactly two values: "
-                    "part and total."
+                    "Percentage operation requires exactly two values: part and total."
                 )
 
             part, total = values
@@ -217,9 +212,7 @@ def data_analysis(
 
         elif operation == "ranking":
             if column is None:
-                raise ValueError(
-                    "Ranking requires structured records and a column."
-                )
+                raise ValueError("Ranking requires structured records and a column.")
 
             ranked = sorted(
                 data,
@@ -263,7 +256,7 @@ def data_analysis(
 
         return json.dumps(output, indent=2)
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return json.dumps(
             {
                 "error": str(e),

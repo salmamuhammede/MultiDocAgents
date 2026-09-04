@@ -52,7 +52,7 @@ class IngestionPipeline:
         Process a single document.
 
         Flow:
-            Load → Clean → Chunk → Store
+            Load -- Clean -- Chunk -- Store
 
         Returns:
             Number of chunks stored.
@@ -159,9 +159,7 @@ def main() -> None:
 
     chunks_count = pipeline.process(source)
 
-    print("\n" + "=" * 60)
     print("INGESTION RESULT")
-    print("=" * 60)
 
     print(f"Source: {source}")
     print(f"Chunks stored: {chunks_count}")

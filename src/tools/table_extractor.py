@@ -21,6 +21,7 @@ NEARBY_PAGE_RANGE = 2
 # Page Utilities
 # ============================================================
 
+
 def _normalize_page_number(page: Any) -> int:
     """
     Convert 0-based page metadata into a 1-based PDF page number.
@@ -69,6 +70,7 @@ def _get_nearby_pages(
 # Table Extraction
 # ============================================================
 
+
 def _find_tables_on_page(
     pdf: pdfplumber.PDF,
     page_number: int,
@@ -83,10 +85,7 @@ def _find_tables_on_page(
     if page_number < 1 or page_number > len(pdf.pages):
         return []
 
-    logger.info(
-        f"Opening page for table extraction: "
-        f"Page {page_number}"
-    )
+    logger.info(f"Opening page for table extraction: Page {page_number}")
 
     page = pdf.pages[page_number - 1]
 
@@ -105,6 +104,7 @@ def _find_tables_on_page(
 # Table Cleaning
 # ============================================================
 
+
 def _clean_table(
     table: list[list[Any]],
 ) -> list[list[str]]:
@@ -115,14 +115,10 @@ def _clean_table(
     cleaned = []
 
     for row in table:
-
         if row is None:
             continue
 
-        cleaned_row = [
-            str(cell).strip() if cell is not None else ""
-            for cell in row
-        ]
+        cleaned_row = [str(cell).strip() if cell is not None else "" for cell in row]
 
         if any(cell != "" for cell in cleaned_row):
             cleaned.append(cleaned_row)
@@ -133,6 +129,7 @@ def _clean_table(
 # ============================================================
 # Convert Table to Records
 # ============================================================
+
 
 def _table_to_records(
     table: list[list[str]],
@@ -154,7 +151,6 @@ def _table_to_records(
     normalized_headers = []
 
     for i, header in enumerate(headers):
-
         header = header.strip()
 
         if not header:
@@ -165,23 +161,13 @@ def _table_to_records(
     rows = []
 
     for row in table[1:]:
-
         if len(row) < len(normalized_headers):
-
-            row = row + [
-                ""
-            ] * (
-                len(normalized_headers) - len(row)
-            )
+            row = row + [""] * (len(normalized_headers) - len(row))
 
         elif len(row) > len(normalized_headers):
+            row = row[: len(normalized_headers)]
 
-            row = row[:len(normalized_headers)]
-
-        record = {
-            normalized_headers[i]: row[i]
-            for i in range(len(normalized_headers))
-        }
+        record = {normalized_headers[i]: row[i] for i in range(len(normalized_headers))}
 
         rows.append(record)
 
@@ -194,6 +180,7 @@ def _table_to_records(
 # ============================================================
 # Table Extractor Tool
 # ============================================================
+
 
 @tool
 def extract_tables(
@@ -237,7 +224,6 @@ def extract_tables(
     pages_to_process = []
 
     for document in documents:
-
         metadata = document.metadata or {}
 
         source = metadata.get("source")
@@ -251,18 +237,14 @@ def extract_tables(
         pdf_path = Path(source)
 
         if not pdf_path.exists():
-            logger.warning(
-                f"PDF does not exist: {pdf_path}"
-            )
+            logger.warning(f"PDF does not exist: {pdf_path}")
             continue
 
         try:
             retrieved_page = _normalize_page_number(page)
 
         except ValueError:
-            logger.warning(
-                f"Invalid page metadata: {page}"
-            )
+            logger.warning(f"Invalid page metadata: {page}")
             continue
 
         # ----------------------------------------------------
@@ -270,9 +252,7 @@ def extract_tables(
         # ----------------------------------------------------
 
         try:
-
             with pdfplumber.open(pdf_path) as pdf:
-
                 total_pages = len(pdf.pages)
 
                 nearby_pages = _get_nearby_pages(
@@ -281,11 +261,8 @@ def extract_tables(
                     NEARBY_PAGE_RANGE,
                 )
 
-        except Exception as e:
-
-            logger.error(
-                f"Failed to inspect PDF {source}: {e}"
-            )
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Failed to inspect PDF {source}: {e}")
 
             continue
 
@@ -294,7 +271,6 @@ def extract_tables(
         # ----------------------------------------------------
 
         for page_number in nearby_pages:
-
             pages_to_process.append(
                 (
                     str(pdf_path),
@@ -308,7 +284,6 @@ def extract_tables(
     # --------------------------------------------------------
 
     for source, page_number, retrieved_page in pages_to_process:
-
         page_key = (
             str(Path(source).resolve()),
             page_number,
@@ -319,25 +294,18 @@ def extract_tables(
 
         processed_pages.add(page_key)
 
-        logger.info(
-            f"Checking page {page_number} "
-            f"(retrieved page: {retrieved_page})"
-        )
+        logger.info(f"Checking page {page_number} (retrieved page: {retrieved_page})")
 
         try:
-
             with pdfplumber.open(source) as pdf:
-
                 raw_tables = _find_tables_on_page(
                     pdf,
                     page_number,
                 )
 
-        except Exception as e:
-
+        except Exception as e:  # noqa: BLE001
             logger.error(
-                f"Failed to extract tables from "
-                f"{source} page {page_number}: {e}"
+                f"Failed to extract tables from {source} page {page_number}: {e}"
             )
 
             extracted_tables.append(
@@ -355,27 +323,18 @@ def extract_tables(
         # ----------------------------------------------------
 
         for table_index, raw_table in enumerate(raw_tables):
-
             cleaned_table = _clean_table(raw_table)
 
             if not cleaned_table:
                 continue
 
-            structured_table = _table_to_records(
-                cleaned_table
-            )
+            structured_table = _table_to_records(cleaned_table)
 
-            logger.info(
-                f"Extracted table from "
-                f"{Path(source).name} "
-                f"page {page_number}"
-            )
+            logger.info(f"Extracted table from {Path(source).name} page {page_number}")
 
             extracted_tables.append(
                 {
-                    "table_id": (
-                        f"table_{len(extracted_tables) + 1}"
-                    ),
+                    "table_id": (f"table_{len(extracted_tables) + 1}"),
                     "source": source,
                     "page": page_number,
                     "retrieved_from_page": retrieved_page,
@@ -390,7 +349,6 @@ def extract_tables(
     # --------------------------------------------------------
 
     if not extracted_tables:
-
         logger.info("Found no tables")
 
         return json.dumps(
@@ -406,9 +364,7 @@ def extract_tables(
     # Return tables
     # --------------------------------------------------------
 
-    logger.info(
-        f"Found {len(extracted_tables)} tables"
-    )
+    logger.info(f"Found {len(extracted_tables)} tables")
 
     return json.dumps(
         {

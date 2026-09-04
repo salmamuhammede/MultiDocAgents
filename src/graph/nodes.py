@@ -13,18 +13,15 @@ def retrieve(state: AnalystState):
 
     retriever = RetrieverAgent()
 
-    #if analyst tool has a more specific query for more evidence
+    # if analyst tool has a more specific query for more evidence
     query = state.get("retrieval_query") or state["question"]
-    
-    results = retriever.retrieve(
-        query
-    )
 
-    #make sure docs have metadata and are formatted correctly
+    results = retriever.retrieve(query)
+
+    # make sure docs have metadata and are formatted correctly
     documents = []
 
     for item in results:
-
         print("\nProcessing item:", type(item))
 
         if isinstance(item, tuple):
@@ -42,7 +39,6 @@ def retrieve(state: AnalystState):
     }
 
 
-
 def analyze_node(analyzer):
 
     def analyze(state: AnalystState):
@@ -58,10 +54,7 @@ def analyze_node(analyzer):
         )
 
         messages = [
-            SystemMessage(
-                content=ANALYST_PROMPT
-            ),
-
+            SystemMessage(content=ANALYST_PROMPT),
             HumanMessage(
                 content=(
                     f"Retrieved documents are available.\n"
@@ -73,7 +66,6 @@ def analyze_node(analyzer):
                     f"{state['question']}"
                 )
             ),
-
             *state["messages"],
         ]
 
@@ -81,9 +73,7 @@ def analyze_node(analyzer):
             content = str(message.content)
 
             print(
-                f"Message {i}: "
-                f"{type(message).__name__} | "
-                f"{len(content):,} characters"
+                f"Message {i}: {type(message).__name__} | {len(content):,} characters"
             )
 
         response = analyzer.invoke(messages)
@@ -99,10 +89,7 @@ def analyze_node(analyzer):
 
         print("=" * 80)
 
-        tool_calls_count = state.get(
-            "tool_calls_count",
-            0
-        )
+        tool_calls_count = state.get("tool_calls_count", 0)
 
         if response.tool_calls:
             tool_calls_count += len(response.tool_calls)
@@ -115,25 +102,80 @@ def analyze_node(analyzer):
     return analyze
 
 
-#node for the evidence tool
-def more_evidence(state: AnalystState):
+def final_answer_node(analyzer):
+    def final_answer(state: AnalystState):
+        documents = state.get("documents", [])
 
+        retrieved_info = "\n\n".join(
+            [
+                (
+                    f"Source: {doc.metadata.get('source', 'Unknown')} | "
+                    f"Page: {doc.metadata.get('page', 'Unknown')}\n"
+                    f"{doc.page_content}"
+                )
+                for doc in documents
+            ]
+        )
+
+        messages = [
+            SystemMessage(
+                content=(
+                    f"{ANALYST_PROMPT}\n\n"
+                    "You must provide the final answer now.\n"
+                    "Do not use tools.\n"
+                    "Answer the user's question using the retrieved evidence.\n"
+                    "If the evidence is insufficient, say so clearly.\n\n"
+                    f"Retrieved evidence:\n{retrieved_info}"
+                )
+            ),
+            HumanMessage(content=state["question"]),
+        ]
+
+        response = analyzer.invoke(messages)
+
+        logger.success("Final answer generated.")
+
+        return {
+            "messages": [response],
+        }
+
+    return final_answer
+
+
+# node for the evidence tool
+# def more_evidence(state: AnalystState):
+
+#     last_message = state["messages"][-1]
+
+#     tool_calls = getattr(last_message, "tool_calls", [])
+
+#     for call in tool_calls:
+#         if call["name"] == "search_more_evidence":
+#             query = call["args"]["query"]
+
+#             logger.info(f"Requesting more evidence: {query}")
+
+#             return {"retrieval_query": query}
+
+
+#     return {}
+def more_evidence(state: AnalystState):
     last_message = state["messages"][-1]
 
     tool_calls = getattr(last_message, "tool_calls", [])
 
     for call in tool_calls:
-
         if call["name"] == "search_more_evidence":
+            query = call["args"].get("query")
 
-            query = call["args"]["query"]
+            if not query:
+                logger.warning("search_more_evidence called without a query")
+                return {}
 
-            logger.info(
-                f"Requesting more evidence: {query}"
-            )
+            logger.info(f"Requesting more evidence: {query}")
 
             return {
-                "retrieval_query": query
+                "retrieval_query": query,
             }
 
     return {}

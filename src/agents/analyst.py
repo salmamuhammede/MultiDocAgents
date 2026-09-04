@@ -15,7 +15,7 @@ from src.tools.calculator import Calculator
 from src.tools.data_analysis import data_analysis
 from src.tools.document_comparator import DocumentComparisonTool
 
-#import the search_more_evidence tool 
+# import the search_more_evidence tool
 from src.tools.search_evidence import search_more_evidence
 from src.tools.table_extractor import extract_tables
 
@@ -32,7 +32,7 @@ class AnalystAgent:
             base_url=BASE_URL,
             model=LLM_MODEL_NAME,
             temperature=TEMPERATURE,
-             timeout=ANALYST_TIMEOUT,
+            timeout=ANALYST_TIMEOUT,
         )
         logger.success("Analyst model loaded.")
         calc = Calculator
@@ -52,6 +52,20 @@ class AnalystAgent:
         logger.success("Bound tools to AnalystAgent")
 
         return llm_with_tools
+
+    @staticmethod
+    def load_llm():
+        llm = ChatOpenAI(
+            api_key=ANALYST_API_KEY,
+            base_url=BASE_URL,
+            model=LLM_MODEL_NAME,
+            temperature=TEMPERATURE,
+            timeout=ANALYST_TIMEOUT,
+        )
+
+        logger.success("Final answer model loaded.")
+
+        return llm
 
     @staticmethod
     def get_tools():

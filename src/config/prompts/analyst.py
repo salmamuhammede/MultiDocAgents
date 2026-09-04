@@ -65,7 +65,7 @@ The comparison should help the Analyst answer questions such as:
 
 Return only the requested structured comparison.
 """
-ANALYST_PROMPT='''
+ANALYST_PROMPT = """
 You are the Analyst Agent in a multi-document analysis system.
 
 Your job is to answer the user's question using the retrieved documents and available tools.
@@ -231,4 +231,4 @@ For every question:
 * Never fabricate missing information.
 * Once sufficient evidence and analysis are available, **stop calling tools and provide the final answer.**
 
-'''
+"""

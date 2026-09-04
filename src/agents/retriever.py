@@ -1,6 +1,10 @@
+# Standard library
+
+# Third-party
 from langchain_core.documents import Document
 from loguru import logger
 
+# Local
 # Ingestion
 from src.ingestion.embedder import EmbeddingModel
 
@@ -26,11 +30,9 @@ class RetrieverAgent:
     4. Reranking the retrieved documents.
     5. Selecting the final evidence.
 
-    The Retriever Agent does NOT answer the user's question.
+    Note: The Retriever Agent does NOT answer the user's question.
     It only returns relevant evidence for the Analyst Agent.
 
-    By default, the agent initializes the complete retrieval
-    pipeline internally.
     """
 
     def __init__(
@@ -129,10 +131,7 @@ class RetrieverAgent:
 
         logger.info(f"Retriever Agent processing: {query}")
 
-        # --------------------------------------------------
         # 1. Rewrite Query
-        # --------------------------------------------------
-
         rewritten_query = self.query_rewriter.rewrite(
             query=query,
             conversation_history=conversation_history,
@@ -140,9 +139,7 @@ class RetrieverAgent:
 
         logger.info(f"Rewritten query: {rewritten_query}")
 
-        # --------------------------------------------------
         # 2. Hybrid Retrieval
-        # --------------------------------------------------
 
         hybrid_results = self.hybrid_search.search(
             query=rewritten_query,
@@ -153,9 +150,7 @@ class RetrieverAgent:
 
         logger.info(f"Hybrid retrieval returned {len(hybrid_results)} candidates.")
 
-        # --------------------------------------------------
         # 3. Extract Documents
-        # --------------------------------------------------
 
         documents = [document for document, _ in hybrid_results]
 
@@ -163,9 +158,7 @@ class RetrieverAgent:
             logger.warning("Hybrid search returned no documents.")
             return []
 
-        # --------------------------------------------------
         # 4. Metadata Filtering
-        # --------------------------------------------------
 
         if metadata_filters:
             documents = self.metadata_filter.filter(
@@ -179,9 +172,7 @@ class RetrieverAgent:
             logger.warning("No documents remain after filtering.")
             return []
 
-        # --------------------------------------------------
         # 5. Reranking
-        # --------------------------------------------------
 
         reranked_documents = self.reranker.rerank(
             query=rewritten_query,
@@ -191,9 +182,7 @@ class RetrieverAgent:
 
         logger.info(f"Reranking produced {len(reranked_documents)} documents.")
 
-        print("\n" + "=" * 60)
         print("RERANKER RESULTS")
-        print("=" * 60)
 
         for i, (document, score) in enumerate(
             reranked_documents,
@@ -204,9 +193,7 @@ class RetrieverAgent:
             print(f"Page: {document.metadata.get('page', 'N/A')}")
             print(f"Content:\n{document.page_content[:300]}")
 
-        # --------------------------------------------------
         # 6. Context Selection
-        # --------------------------------------------------
 
         final_context = self.context_selector.select(reranked_documents)
 
@@ -231,9 +218,7 @@ def main() -> None:
         query=query,
     )
 
-    print("\n" + "=" * 60)
     print("RETRIEVAL RESULTS")
-    print("=" * 60)
 
     print(f"\nQuery: {query}")
     print(f"Number of results: {len(results)}")
@@ -242,7 +227,7 @@ def main() -> None:
         results,
         start=1,
     ):
-        print(f"\n--- Result {i} ---")
+        print(f"\n Result {i} ")
 
         print(f"Score: {score:.4f}")
 

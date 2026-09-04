@@ -22,7 +22,7 @@ class VectorDB:
     - Create or open the Chroma database.
     - Store document chunks.
     - Generate stable chunk IDs.
-    - Provide access to the underlying vector store.
+    - Provide access to the vector store.
     """
 
     def __init__(
@@ -45,23 +45,45 @@ class VectorDB:
         documents: list[Document],
     ) -> None:
         """
-        Add document chunks to Chroma.
+        Add only new document chunks to Chroma.
         """
 
         if not documents:
             logger.warning("No documents found to add.")
             return
 
-        logger.info(f"Adding {len(documents)} chunks to Chroma...")
-
         ids = self._generate_ids(documents)
 
-        self.vector_db.add_documents(
-            documents=documents,
+        existing = self.vector_db.get(
             ids=ids,
+            include=[],
         )
 
-        logger.success(f"Successfully added {len(documents)} chunks.")
+        existing_ids = set(existing["ids"])
+
+        new_documents = []
+        new_ids = []
+
+        for document, document_id in zip(documents, ids):
+            if document_id not in existing_ids:
+                new_documents.append(document)
+                new_ids.append(document_id)
+
+        if not new_documents:
+            logger.info("All document chunks already exist in Chroma.")
+            return
+
+        logger.info(
+            f"Adding {len(new_documents)} new chunks "
+            f"out of {len(documents)} total chunks."
+        )
+
+        self.vector_db.add_documents(
+            documents=new_documents,
+            ids=new_ids,
+        )
+
+        logger.success(f"Successfully added {len(new_documents)} new chunks.")
 
     def similarity_search(
         self,
@@ -70,9 +92,6 @@ class VectorDB:
     ) -> list[Document]:
         """
         Perform semantic similarity search.
-
-        This method is useful for testing and can also
-        be used by the semantic search component.
         """
 
         logger.info(f"Performing similarity search: '{query}'")
@@ -106,7 +125,7 @@ class VectorDB:
 
     def get_vector_store(self) -> Chroma:
         """
-        Return the underlying Chroma vector store.
+        Return the  Chroma vector store.
         """
 
         return self.vector_db

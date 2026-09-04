@@ -71,8 +71,26 @@ UPLOAD_DIR = "data/uploads"
 PDF_DOC_TEST = "data/uploads/gdp.pdf"
 
 # ==============================
-#Timeouts and maxlimits
+# Timeouts and maxlimits
 # ==============================
-MAX_TOOL_CALLS = 5
+MAX_TOOL_CALLS = 2
 REWRITER_TIMEOUT = 60
 ANALYST_TIMEOUT = 60
+
+##########################################
+WHISPER_MODEL = "small"
+WHISPER_COMPUTE_TYPE = "int8"
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+DATA_DIR = PROJECT_ROOT / "data"
+
+AUDIO_TEST_PATH = DATA_DIR / "audios" / "ml05_hap (23).wav"
+
+IMAGE_TEST_PATH = DATA_DIR / "images" / "ocr_test.png"
+
+AUDIO_UPLOADS_FOLDER = DATA_DIR / "audios"
+
+IMAGES_UPLOADS_FOLDER = DATA_DIR / "images"
+############################

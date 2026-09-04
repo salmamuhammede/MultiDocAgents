@@ -15,7 +15,9 @@ def search_more_evidence(query: str) -> str:
 
     logger.info(f"Search more evidence requested: {query}")
 
-    return json.dumps({
-        "type": "additional_retrieval",
-        "query": query,
-    })
+    return json.dumps(
+        {
+            "type": "additional_retrieval",
+            "query": query,
+        }
+    )

@@ -16,3 +16,10 @@ pypdf
 rank-bm25
 pdfplumber
 pandas
+faster_whisper
+easyocr
+opencv-python
+langsmith
+fastapi
+uvicorn
+streamlit

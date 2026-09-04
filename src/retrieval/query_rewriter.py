@@ -1,7 +1,11 @@
+# Standard library
+
+# Third-party
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from loguru import logger
 
+# Local
 from src.config.prompts.retriever import (
     RETRIEVER_QUERY_REWRITE_PROMPT,
 )
@@ -19,13 +23,11 @@ class QueryRewriter:
     Rewrite user queries into retrieval-friendly queries.
 
     Responsibilities:
-    - Resolve vague references.
+    - Resolve unclear references.
     - Expand abbreviations.
     - Clarify terminology.
     - Preserve important technical terms.
     - Produce a query optimized for document retrieval.
-
-    This class does NOT perform document retrieval.
     """
 
     def __init__(self) -> None:

@@ -114,9 +114,7 @@ class DocumentComparisonTool:
         # Force the LLM to return our Pydantic schema
         self.chain = self.prompt | self.llm.with_structured_output(ComparisonResult)
 
-        self.compare_documents = tool(
-            self._compare_documents
-        )
+        self.compare_documents = tool(self._compare_documents)
 
     # --------------------------------------------------------
     # Format retrieved chunks
