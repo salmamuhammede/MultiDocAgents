@@ -73,7 +73,7 @@ PDF_DOC_TEST = "data/uploads/gdp.pdf"
 # ==============================
 # Timeouts and maxlimits
 # ==============================
-MAX_TOOL_CALLS = 2
+MAX_TOOL_CALLS = 4
 REWRITER_TIMEOUT = 60
 ANALYST_TIMEOUT = 60
 
